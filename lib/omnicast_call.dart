@@ -5,7 +5,6 @@
 // each other through any node both can reach. Media is peer to peer (STUN), or through TURN when the
 // node hands out TURN credentials.
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -371,11 +370,4 @@ class _CallScreenState extends State<CallScreen> {
       ),
     );
   }
-}
-
-/// Short random call id (A-Z a-z 0-9, 16 chars) for a new outgoing call.
-String newCallId() {
-  const abc = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  final r = Random.secure();
-  return List.generate(16, (_) => abc[r.nextInt(abc.length)]).join();
 }
