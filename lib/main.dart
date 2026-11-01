@@ -287,6 +287,18 @@ class _OmniCastHomeState extends State<OmniCastHome> {
             decoration: const InputDecoration(
                 labelText: 'Token', helperText: 'Omni Node > Connect apps > Copy token'),
           ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              icon: const Icon(Icons.system_update),
+              label: const Text('Check for updates'),
+              onPressed: () {
+                Navigator.pop(c, false);
+                OmniOta.checkAndPrompt(context);
+              },
+            ),
+          ),
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
