@@ -266,10 +266,11 @@ class SignalHub {
   Uri uri(String path, [Map<String, String>? query]) =>
       Uri(scheme: 'http', host: _h, port: ipcPort, path: path, queryParameters: query);
 
-  /// The bearer header value, only for a remote hub with a token.
+  /// The bearer header value whenever a token is set. Omni Node (OMNI_LOCAL_TOKEN=1) wants its local
+  /// token on loopback too; daemon v8.20.0+ accepts it as a bearer header there.
   String? get authorization {
     final t = token;
-    return isRemote && t != null && t.isNotEmpty ? 'Bearer $t' : null;
+    return t != null && t.isNotEmpty ? 'Bearer $t' : null;
   }
 }
 
