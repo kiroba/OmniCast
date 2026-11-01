@@ -67,9 +67,8 @@ class CallSession extends ChangeNotifier {
     try {
       ice = await client.fetchIceConfiguration();
     } catch (_) {
-      ice = const SignalIceConfig(iceServers: [
-        {'urls': ['stun:stun.l.google.com:19302']}
-      ], iceTransportPolicy: 'all', turn: false);
+      // Node unreachable: no third-party fallback. Direct (same Wi-Fi / IPv6) paths still work.
+      ice = const SignalIceConfig(iceServers: [], iceTransportPolicy: 'all', turn: false);
     }
     final pc = await createPeerConnection(ice.rtcConfiguration);
     _pc = pc;
@@ -92,9 +91,10 @@ class CallSession extends ChangeNotifier {
         case RTCPeerConnectionState.RTCPeerConnectionStateConnected:
           _connectTimer?.cancel();
           _set(CallPhase.connected, 'Connected');
+          _reportPath();
           break;
         case RTCPeerConnectionState.RTCPeerConnectionStateFailed:
-          _end('Connection failed. Both networks may block direct calls; a node with TURN fixes that.',
+          _end('Connection failed. Both networks may block direct calls; an Omni node with relaying on fixes that.',
               notify: true);
           break;
         case RTCPeerConnectionState.RTCPeerConnectionStateDisconnected:
@@ -105,6 +105,44 @@ class CallSession extends ChangeNotifier {
       }
     };
     _sub = incoming.listen(_onSignal, onError: (_) {}, cancelOnError: false);
+  }
+
+  /// How the media flows, from the selected ICE candidate pair: shown in the status line so
+  /// testers can tell direct, hole-punched and relayed calls apart.
+  Future<void> _reportPath() async {
+    try {
+      final stats = await _pc?.getStats();
+      if (stats == null) return;
+      final byId = {for (final r in stats) r.id: r};
+      String? pairId;
+      for (final r in stats) {
+        if (r.type == 'transport' && r.values['selectedCandidatePairId'] is String) {
+          pairId = r.values['selectedCandidatePairId'] as String;
+        }
+      }
+      pairId ??= stats
+          .where((r) => r.type == 'candidate-pair' && r.values['state'] == 'succeeded' && r.values['nominated'] == true)
+          .map((r) => r.id)
+          .firstOrNull;
+      final pair = pairId == null ? null : byId[pairId];
+      final local = pair == null ? null : byId[pair.values['localCandidateId']];
+      final remote = pair == null ? null : byId[pair.values['remoteCandidateId']];
+      final lt = local?.values['candidateType'];
+      final rt = remote?.values['candidateType'];
+      String path;
+      if (lt == 'relay' || rt == 'relay') {
+        path = 'relayed through an Omni node';
+      } else if (lt == 'srflx' || rt == 'srflx' || lt == 'prflx' || rt == 'prflx') {
+        path = 'direct (through the router)';
+      } else if (lt == 'host') {
+        path = 'direct';
+      } else {
+        return;
+      }
+      if (phase == CallPhase.connected) _set(CallPhase.connected, 'Connected · $path');
+    } catch (_) {
+      // Stats are a nice-to-have; never end a call over them.
+    }
   }
 
   void _onSignal(SignalMessage m) {
@@ -143,7 +181,7 @@ class CallSession extends ChangeNotifier {
     _connectTimer?.cancel();
     _connectTimer = Timer(const Duration(seconds: 30), () {
       if (phase != CallPhase.connected) {
-        _end('Couldn\'t connect the media. Both networks may block direct calls; a node with TURN fixes that.',
+        _end('Couldn\'t connect the media. Both networks may block direct calls; an Omni node with relaying on fixes that.',
             notify: true);
       }
     });
