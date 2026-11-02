@@ -357,7 +357,11 @@ class _CallScreenState extends State<CallScreen> {
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
                         const CircleAvatar(radius: 44, child: Icon(Icons.person, size: 48)),
                         const SizedBox(height: 16),
-                        Text(s.peerName, style: const TextStyle(color: Colors.white, fontSize: 24)),
+                        Text(s.peerName,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(color: Colors.white, fontSize: 24)),
                       ]),
                     ),
             ),
@@ -389,7 +393,11 @@ class _CallScreenState extends State<CallScreen> {
               bottom: 24,
               left: 0,
               right: 0,
-              child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+              child: Wrap(
+                  alignment: WrapAlignment.spaceEvenly,
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
                 _btn(s.micOn ? Icons.mic : Icons.mic_off, s.micOn ? 'Mute' : 'Unmute', s.toggleMic),
                 _btn(s.camOn ? Icons.videocam : Icons.videocam_off, s.camOn ? 'Camera off' : 'Camera on',
                     s.toggleCam),

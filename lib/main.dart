@@ -169,6 +169,7 @@ class _OmniCastHomeState extends State<OmniCastHome> {
       context: ctx,
       barrierDismissible: false,
       builder: (c) => AlertDialog(
+        scrollable: true,
         icon: const Icon(Icons.videocam, size: 40),
         title: Text(name),
         content: const Text('Incoming video call'),
@@ -233,6 +234,7 @@ class _OmniCastHomeState extends State<OmniCastHome> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
+        scrollable: true,
         title: const Text('Add contact'),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
@@ -275,6 +277,7 @@ class _OmniCastHomeState extends State<OmniCastHome> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
+        scrollable: true,
         title: const Text('Node settings'),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(
