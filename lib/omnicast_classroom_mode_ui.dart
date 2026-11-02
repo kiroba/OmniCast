@@ -83,15 +83,21 @@ class _OmniCastClassroomScreenState extends State<OmniCastClassroomScreen> {
           children: [
             Text(
               'OmniCast Classroom: ${widget.classRoomId}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             Row(
               children: [
                 const Icon(Icons.shield_outlined, size: 12, color: Colors.tealAccent),
                 const SizedBox(width: 4),
-                Text(
-                  'Role: ${widget.userRole.toUpperCase()} | P2P TURN Sync Active',
-                  style: const TextStyle(fontSize: 11, color: Colors.tealAccent),
+                Flexible(
+                  child: Text(
+                    'Role: ${widget.userRole.toUpperCase()} | P2P TURN Sync Active',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 11, color: Colors.tealAccent),
+                  ),
                 ),
               ],
             ),
@@ -105,7 +111,11 @@ class _OmniCastClassroomScreenState extends State<OmniCastClassroomScreen> {
         ],
       ),
       body: SafeArea(
-        child: Column(
+        child: LayoutBuilder(
+          builder: (context, box) => SingleChildScrollView(
+            child: SizedBox(
+              height: box.maxHeight < 520 ? 520 : box.maxHeight,
+              child: Column(
           children: [
             // Main Stage View (Educator Stream / Screen Share)
             Expanded(
@@ -120,8 +130,10 @@ class _OmniCastClassroomScreenState extends State<OmniCastClassroomScreen> {
                 child: Stack(
                   children: [
                     Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
                             _isScreenSharing ? Icons.screen_share : Icons.cast_for_education,
@@ -141,6 +153,7 @@ class _OmniCastClassroomScreenState extends State<OmniCastClassroomScreen> {
                             style: TextStyle(color: Colors.white38, fontSize: 12),
                           ),
                         ],
+                      ),
                       ),
                     ),
                     // Live Indicator Badge
@@ -181,15 +194,19 @@ class _OmniCastClassroomScreenState extends State<OmniCastClassroomScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.pan_tool, size: 18, color: Colors.amberAccent),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_raisedHands.length} Student(s) Raising Hand',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
-                        ),
-                      ],
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Icon(Icons.pan_tool, size: 18, color: Colors.amberAccent),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              '${_raisedHands.length} Student(s) Raising Hand',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     TextButton(
                       onPressed: () => _showRaisedHandsModal(context),
@@ -312,10 +329,14 @@ class _OmniCastClassroomScreenState extends State<OmniCastClassroomScreen> {
 
             // Bottom Classroom Control Deck
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               color: const Color(0xFF1E293B),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+              child: Wrap(
+                alignment: WrapAlignment.spaceAround,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   IconButton(
                     icon: Icon(_isMicMuted ? Icons.mic_off : Icons.mic, color: _isMicMuted ? Colors.redAccent : Colors.white),
@@ -350,6 +371,9 @@ class _OmniCastClassroomScreenState extends State<OmniCastClassroomScreen> {
             ),
           ],
         ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -357,8 +381,10 @@ class _OmniCastClassroomScreenState extends State<OmniCastClassroomScreen> {
   void _showParticipantsModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF1E293B),
-      builder: (_) => Container(
+      builder: (_) => SafeArea(
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -383,15 +409,17 @@ class _OmniCastClassroomScreenState extends State<OmniCastClassroomScreen> {
             ),
           ],
         ),
-      ),
+      )),
     );
   }
 
   void _showRaisedHandsModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF1E293B),
-      builder: (_) => Container(
+      builder: (_) => SafeArea(
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -416,7 +444,7 @@ class _OmniCastClassroomScreenState extends State<OmniCastClassroomScreen> {
                 )),
           ],
         ),
-      ),
+      )),
     );
   }
 }
