@@ -31,6 +31,15 @@ class CastHub {
     }
   }
 
+  /// For OmniOta (Omni-Core-UI 0.1.3 asks the Omni Node on this phone for updates first):
+  /// the saved token when the hub is Omni Node on this phone; a token for another hub is never
+  /// sent to 127.0.0.1. null = no Node token, so updates come from GitHub.
+  static Future<String?> localNodeToken() async {
+    final hub = await load();
+    final t = hub.token.trim();
+    return hub.isLocal && t.isNotEmpty ? t : null;
+  }
+
   Future<void> save() async {
     await _store.write(key: 'omnicast_hub_host_v1', value: host.trim());
     await _store.write(key: 'omnicast_hub_token_v1', value: token.trim());
