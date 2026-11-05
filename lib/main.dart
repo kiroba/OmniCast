@@ -13,7 +13,11 @@ import 'omnicast_settings.dart';
 // OmniCast: 1:1 video calls between Omni identities, signaled through Omni Node (daemon v8.21.0+
 // relays signaling between nodes). Classroom Mode stays a UI preview with no live video.
 // The app must be open to ring; there is no background call service yet.
-void main() => runApp(const OmniCastApp());
+void main() {
+  // Updates: ask the Omni Node on this phone first, with its token from Settings.
+  OmniOta.localTokenProvider = CastHub.localNodeToken;
+  runApp(const OmniCastApp());
+}
 
 final GlobalKey<NavigatorState> navKey = GlobalKey<NavigatorState>();
 
