@@ -5,7 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:omni_core_ui/omni_core_ui.dart';
 
+import 'identity_transfer.dart';
 import 'omni_signal_client.dart';
+import 'omnicast_seed_store.dart';
 import 'omnicast_call.dart';
 import 'omnicast_classroom_mode_ui.dart';
 import 'omnicast_settings.dart';
@@ -14,6 +16,10 @@ import 'omnicast_settings.dart';
 // relays signaling between nodes). Classroom Mode stays a UI preview with no live video.
 // The app must be open to ring; there is no background call service yet.
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Identity seed in Keystore-encrypted storage (migrates the old SQLite
+  // seed on first read). Must be set before the identity is first loaded.
+  StargateIdentity.seedStore = OmniCastSeedStore();
   // Updates: ask the Omni Node on this phone first, with its token from Settings.
   OmniOta.localTokenProvider = CastHub.localNodeToken;
   runApp(const OmniCastApp());
@@ -278,6 +284,7 @@ class _OmniCastHomeState extends State<OmniCastHome> {
   Future<void> _settings() async {
     final host = TextEditingController(text: _hub.host);
     final token = TextEditingController(text: _hub.token);
+    final transfer = TextEditingController();
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -293,6 +300,25 @@ class _OmniCastHomeState extends State<OmniCastHome> {
             obscureText: true,
             decoration: const InputDecoration(
                 labelText: 'Token', helperText: 'Omni Node > Connect apps > Copy token'),
+          ),
+          const Divider(height: 28),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Identity', style: Theme.of(c).textTheme.titleSmall),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _id == null
+                ? 'Your call identity loads at startup.'
+                : 'Calls currently use this app\'s own key (${_id!.shortId}). Import the transfer code from LPE to call as your Halo identity instead - it replaces the key this app created for itself (your call ID changes). Restart the app afterwards.',
+            style: Theme.of(c).textTheme.bodySmall,
+          ),
+          TextField(
+            controller: transfer,
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: const InputDecoration(
+                labelText: 'Identity transfer code', helperText: 'From LPE > Copy identity transfer code'),
           ),
           const SizedBox(height: 16),
           Align(
@@ -318,6 +344,20 @@ class _OmniCastHomeState extends State<OmniCastHome> {
     await next.save();
     setState(() => _hub = next);
     _connect();
+    final code = transfer.text.trim();
+    if (code.isNotEmpty) {
+      final seed = seedFromIdentityTransferCode(code);
+      if (seed == null) {
+        _toast('That transfer code does not check out - copy it again from LPE, complete and unchanged.');
+      } else {
+        try {
+          await OmniCastSeedStore().write(seed);
+          _toast('Identity saved. Restart OmniCast to call as your Halo identity.');
+        } catch (_) {
+          _toast('The code is valid but saving it failed on this device.');
+        }
+      }
+    }
   }
 
   @override
