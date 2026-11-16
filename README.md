@@ -10,8 +10,12 @@ opts in on Wi-Fi + charging). No Google, Cloudflare or other hosted STUN/TURN. W
 call shows which path worked: **direct**, **direct (through the router)** or **relayed through an
 Omni node**. Classroom Mode is unchanged.
 
-**Status:** pre-alpha, not yet tested on real phones or between different networks. Two people
-behind carrier NAT with no reachable Omni node may not connect yet.
+**Status:** pre-alpha. 1:1 calls between real phones on different networks are still
+untested — the first real two-person trial is the rescheduled friend test on
+Nov 18/19, 2026 (calls run through the daemon's signed signaling mailbox on
+`:5000`, direct-first media, another Omni node as relay fallback, no hosted
+STUN/TURN). Two people behind carrier NAT with no reachable Omni node may not
+connect yet.
 
 ## Build
 ```
