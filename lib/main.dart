@@ -49,6 +49,15 @@ class _OmniCastHomeState extends State<OmniCastHome> {
   CastHub _hub = const CastHub();
   List<Contact> _contacts = [];
   OmniSignalClient? _client;
+
+  /// The standard node wiring (Omni-Core-UI v0.1.4), landed in C1:
+  /// constructed and probed at boot from the saved hub settings; routes
+  /// nothing yet — the signal client still owns the link and its status
+  /// line. C2 routes the link status through the wiring probe; the signal
+  /// client itself stays untouched (its own signed-mailbox contract,
+  /// like LPE's profile endpoints).
+  OmniNodeWiring? wiring;
+  final LocalEventStore _eventStore = LocalEventStore();
   Stream<SignalMessage>? _incoming; // broadcast
   StreamSubscription<SignalMessage>? _router;
   final CalleeOfferTracker _tracker = CalleeOfferTracker();
@@ -74,6 +83,16 @@ class _OmniCastHomeState extends State<OmniCastHome> {
       _hub = hub;
       _contacts = contacts;
     });
+    final token = hub.token.trim();
+    wiring = OmniNodeWiring(
+      appContext: 'omnicast',
+      store: _eventStore,
+      hub: OmniHubClient(
+        host: hub.host.isEmpty ? '127.0.0.1' : hub.host,
+        token: token.isEmpty ? null : token,
+      ),
+    );
+    await wiring!.initializeNode();
     _connect();
   }
 
