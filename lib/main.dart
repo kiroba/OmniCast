@@ -50,14 +50,32 @@ class _OmniCastHomeState extends State<OmniCastHome> {
   List<Contact> _contacts = [];
   OmniSignalClient? _client;
 
-  /// The standard node wiring (Omni-Core-UI v0.1.4), landed in C1:
-  /// constructed and probed at boot from the saved hub settings; routes
-  /// nothing yet — the signal client still owns the link and its status
-  /// line. C2 routes the link status through the wiring probe; the signal
-  /// client itself stays untouched (its own signed-mailbox contract,
-  /// like LPE's profile endpoints).
+  /// The standard node wiring (Omni-Core-UI v0.1.4). C1 landed it; C2
+  /// routes the link status's first reading through its probe (see
+  /// [_connect]). The signal client itself stays untouched (its own
+  /// signed-mailbox contract, like LPE's profile endpoints).
   OmniNodeWiring? wiring;
   final LocalEventStore _eventStore = LocalEventStore();
+
+  /// (Re)builds the wiring from the hub CURRENTLY in use, so a probe
+  /// never runs against a stale host/token after a settings change: the
+  /// hub is swapped in place when the wiring already exists (the
+  /// KickBack stale-probe lesson — the app drives the wiring's
+  /// freshness, the wiring does not guess).
+  OmniNodeWiring _wireUp() {
+    final token = _hub.token.trim();
+    final hub = OmniHubClient(
+      host: _hub.host.isEmpty ? '127.0.0.1' : _hub.host,
+      token: token.isEmpty ? null : token,
+    );
+    final w = wiring;
+    if (w == null) {
+      return wiring =
+          OmniNodeWiring(appContext: 'omnicast', store: _eventStore, hub: hub);
+    }
+    w.hub = hub;
+    return w;
+  }
   Stream<SignalMessage>? _incoming; // broadcast
   StreamSubscription<SignalMessage>? _router;
   final CalleeOfferTracker _tracker = CalleeOfferTracker();
@@ -83,16 +101,7 @@ class _OmniCastHomeState extends State<OmniCastHome> {
       _hub = hub;
       _contacts = contacts;
     });
-    final token = hub.token.trim();
-    wiring = OmniNodeWiring(
-      appContext: 'omnicast',
-      store: _eventStore,
-      hub: OmniHubClient(
-        host: hub.host.isEmpty ? '127.0.0.1' : hub.host,
-        token: token.isEmpty ? null : token,
-      ),
-    );
-    await wiring!.initializeNode();
+    await _wireUp().initializeNode();
     _connect();
   }
 
@@ -101,11 +110,25 @@ class _OmniCastHomeState extends State<OmniCastHome> {
     await _client?.close();
     final id = _id;
     if (id == null) return;
+    // C2: the wiring's probe gives the first honest link reading on every
+    // (re)connect, rebuilt from the hub in use (see _wireUp). Its verdict
+    // seeds the status line — the same words the signal poll would have
+    // produced — while the client connects regardless: its own poll and
+    // message flow still confirm Ready and heal the link from there.
+    final conn = await _wireUp().probeConnection();
+    if (!mounted) return;
+    var link = 'Connecting to ${_hub.label}...';
+    if (conn.state == HubConnectionState.unauthorized ||
+        conn.state == HubConnectionState.forbidden) {
+      link = 'Node refused the token. Open settings and paste it from Omni Node > Connect apps.';
+    } else if (!conn.connected) {
+      link = 'Can\'t reach ${_hub.label}. Is Omni Node on?';
+    }
     final c = OmniSignalClient(hub: _hub.signalHub, pubkeyHex: id.pubkeyHex, sign: id.signBytes);
     _client = c;
     _incoming = c.messages().asBroadcastStream();
     setState(() {
-      _link = 'Connecting to ${_hub.label}...';
+      _link = link;
       _linkOk = false;
     });
     _router = _incoming!.listen((m) {
